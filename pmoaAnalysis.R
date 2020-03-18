@@ -1497,13 +1497,14 @@ hydroPlot <- ggplot(hydroData[variable == "meanHydrophob"],
   geom_line(data = allHydroPreds[variable == "meanHydrophob"],
     aes(x = bfi, y = value),
     linetype = 1) +
-  labs(x = "Base flow index", y = "Average hydrophobicity") +
+  labs(x = "Base flow index", y = "Average hydrophobicity", title = "A") +
   theme_bw() +
   theme(axis.text = element_text(size = 16),
     axis.title = element_text(size = 18),
     legend.text = element_text(size = 14),
     legend.title = element_text(size = 14),
     strip.text.x = element_text(size = 14),
+    plot.title = element_text(size = 20),
     panel.grid = element_blank())
 
 chargePlot <- ggplot(hydroData[variable == "meanCharge"],
@@ -1519,13 +1520,14 @@ chargePlot <- ggplot(hydroData[variable == "meanCharge"],
   geom_line(data = allHydroPreds[variable == "meanCharge"],
     aes(x = bfi, y = value),
     linetype = 1) +
-  labs(x = "Base flow index", y = "Average net charge") +
+  labs(x = "Base flow index", y = "Average net charge", title = "B") +
   theme_bw() +
   theme(axis.text = element_text(size = 16),
     axis.title = element_text(size = 18),
     legend.text = element_text(size = 14),
     legend.title = element_text(size = 14),
     strip.text.x = element_text(size = 14),
+    plot.title = element_text(size = 20),
     panel.grid = element_blank())
 
 plotLegend <- cowplot::get_legend(hydroPlot)
