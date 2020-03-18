@@ -102,6 +102,20 @@ pmoaHydro_bfi <- ggplot(pmoaDat,
     legend.title = element_text(size = 14),
     panel.grid = element_blank())
 
+pmoaCharge_bfi <- ggplot(pmoaDat,
+    aes(x = bfi, y = meanCharge, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(x = "Base flow index",
+    y = expression(Weighted~mean~italic(pmoA)~net~charge),
+    col = "Geology") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
 pmoaHydroLm <- lm(meanHydrophob ~ bfi, data = pmoaDat)
 pmoaChargeLm <- lm(meanCharge ~ bfi, data = pmoaDat)
 
@@ -304,8 +318,22 @@ mcraHydro_bfi <- ggplot(mcraDat,
     legend.title = element_text(size = 14),
     panel.grid = element_blank())
 
-mcraHydroLm <- lm(meanHydrophob ~ bfi, data = mcraDat)
+mcraCharge_bfi <- ggplot(mcraDat,
+    aes(x = bfi, y = meanCharge, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(x = "Base flow index",
+    y = expression(Weighted~mean~italic(mcrA)~net~charge),
+    col = "Geology") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
 
+mcraHydroLm <- lm(meanHydrophob ~ bfi, data = mcraDat)
+mcraChargeLm <- lm(meanCharge ~ bfi, data = mcraDat)
 # compare to dna OTUS
 otus <- fread("mcrAOtuTab.txt")
 colnames(otus)[1] <- "OTU"
