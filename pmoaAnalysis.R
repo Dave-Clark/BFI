@@ -469,7 +469,8 @@ test <- read.fasta(
 testSeq <- data.table(AAV = names(test),
   seq = unlist(sapply(test, getSequence, as.string = T)))
 
-testSeq$hydro <- hydrophobicity(testSeq$seq)
+testSeq[, ":="(hydro = hydrophobicity(seq),
+  aacharge = charge(seq))]
 
 # retain only sequences that feature in final AAV table
 testSeq <- testSeq[AAV %in% nsAavs]
@@ -478,7 +479,13 @@ testSeq <- testSeq[AAV %in% nsAavs]
 testSeq <- testSeq[order(match(AAV, nsAavs))]
 
 # calculated mean hydrophobicity weighted by abundance of each individual amino acid variant.
-nirsDat[, meanHydrophob := unlist(lapply(1:nrow(nirsDat), function(s) weighted.mean(x = testSeq$hydro, w = nirsDat[s, .SD, .SDcols = nsAavs])))]
+nirsDat[, ":="(
+  meanHydrophob = unlist(lapply(1:nrow(nirsDat), function(s)
+    weighted.mean(x = testSeq$hydro,
+      w = nirsDat[s, .SD, .SDcols = nsAavs]))),
+  meanCharge = unlist(lapply(1:nrow(nirsDat), function(s)
+    weighted.mean(x = testSeq$aacharge,
+      w = nirsDat[s, .SD, .SDcols = nsAavs]))))]
 
 nirsHydro_bfi <- ggplot(nirsDat,
     aes(x = bfi, y = meanHydrophob, col = geol, shape = month)) +
@@ -494,7 +501,22 @@ nirsHydro_bfi <- ggplot(nirsDat,
     legend.title = element_text(size = 14),
     panel.grid = element_blank())
 
+nirsCharge_bfi <- ggplot(nirsDat,
+    aes(x = bfi, y = meanCharge, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(x = "Base flow index",
+    y = expression(Weighted~mean~italic(nirS)~net~charge),
+    col = "Geology") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
 nirsHydroLm <- lm(meanHydrophob ~ bfi, data = nirsDat)
+nirsChargeLm <- lm(meanCharge ~ bfi, data = nirsDat)
 
 ggsave("../figures/nirS_hydrophobicity.pdf", nirsHydro_bfi, height = 6,
   width = 7, device = "pdf")
@@ -634,7 +656,8 @@ test <- read.fasta(
 testSeq <- data.table(AAV = names(test),
   seq = unlist(sapply(test, getSequence, as.string = T)))
 
-testSeq$hydro <- hydrophobicity(testSeq$seq)
+testSeq[, ":="(hydro = hydrophobicity(seq),
+  aacharge = charge(seq))]
 
 # retain only sequences that feature in final AAV table
 testSeq <- testSeq[AAV %in% nsAavs]
@@ -643,9 +666,16 @@ testSeq <- testSeq[AAV %in% nsAavs]
 testSeq <- testSeq[order(match(AAV, nsAavs))]
 
 # calculated mean hydrophobicity weighted by abundance of each individual amino acid variant.
-aobDat[, meanHydrophob := unlist(lapply(1:nrow(aobDat), function(s) weighted.mean(x = testSeq$hydro, w = aobDat[s, .SD, .SDcols = nsAavs])))]
+aobDat[, ":="(
+  meanHydrophob = unlist(lapply(1:nrow(aobDat), function(s)
+    weighted.mean(x = testSeq$hydro,
+      w = aobDat[s, .SD, .SDcols = nsAavs]))),
+  meanCharge = unlist(lapply(1:nrow(aobDat), function(s)
+    weighted.mean(x = testSeq$aacharge,
+      w = aobDat[s, .SD, .SDcols = nsAavs]))))]
 
 aobHydroLm <- lm(meanHydrophob ~ bfi, data = aobDat)
+aobChargeLm <- lm(meanCharge ~ bfi, data = aobDat)
 
 aobHydro_bfi <- ggplot(aobDat, aes(x = bfi, y = meanHydrophob)) +
   geom_point(aes(col = geol, shape = month), size = 4, alpha = 0.6) +
@@ -660,6 +690,18 @@ aobHydro_bfi <- ggplot(aobDat, aes(x = bfi, y = meanHydrophob)) +
     legend.title = element_text(size = 14),
     panel.grid = element_blank())
 
+aobCharge_bfi <- ggplot(aobDat, aes(x = bfi, y = meanCharge)) +
+  geom_point(aes(col = geol, shape = month), size = 4, alpha = 0.6) +
+  labs(x = "Base flow index",
+    y = expression(Weighted~mean~italic(aob)~net~charge),
+    col = "Geology") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
 
 ggsave("../figures/aob_hydrophobicity.pdf", aobHydro_bfi, height = 6,
   width = 7, device = "pdf")
@@ -812,7 +854,8 @@ test <- read.fasta(
 testSeq <- data.table(AAV = names(test),
   seq = unlist(sapply(test, getSequence, as.string = T)))
 
-testSeq$hydro <- hydrophobicity(testSeq$seq)
+testSeq[, ":="(hydro = hydrophobicity(seq),
+  aacharge = charge(seq))]
 
 # retain only sequences that feature in final AAV table
 testSeq <- testSeq[AAV %in% nsAavs]
@@ -821,16 +864,35 @@ testSeq <- testSeq[AAV %in% nsAavs]
 testSeq <- testSeq[order(match(AAV, nsAavs))]
 
 # calculated mean hydrophobicity weighted by abundance of each individual amino acid variant.
-aoaDat[, meanHydrophob := unlist(lapply(1:nrow(aoaDat), function(s)
-  weighted.mean(x = testSeq$hydro, w = aoaDat[s, .SD, .SDcols = nsAavs])))]
+aoaDat[, ":="(meanHydrophob = unlist(lapply(1:nrow(aoaDat), function(s)
+  weighted.mean(x = testSeq$hydro,
+    w = aoaDat[s, .SD, .SDcols = nsAavs]))),
+  meanCharge = unlist(lapply(1:nrow(aoaDat), function(s)
+    weighted.mean(x = testSeq$aacharge,
+      w = aoaDat[s, .SD, .SDcols = nsAavs]))))]
 
 aoaHydroLm <- lm(meanHydrophob ~ bfi, data = aoaDat)
+aoaChargeLm <- lm(meanCharge ~ bfi, data = aoaDat)
 
 aoaHydro_bfi <- ggplot(aoaDat,
     aes(x = bfi, y = meanHydrophob, col = geol, shape = month)) +
   geom_point(size = 4, alpha = 0.6) +
   labs(x = "Base flow index",
     y = expression(Weighted~mean~italic(aoa)~hydrophobicity),
+    col = "Geology") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+aoaCharge_bfi <- ggplot(aoaDat,
+    aes(x = bfi, y = meanCharge, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(x = "Base flow index",
+    y = expression(Weighted~mean~italic(aoa)~net~charge),
     col = "Geology") +
   scale_color_viridis(discrete = T) +
   theme_bw() +
@@ -981,7 +1043,8 @@ test <- read.fasta(
 testSeq <- data.table(AAV = names(test),
   seq = unlist(sapply(test, getSequence, as.string = T)))
 
-testSeq$hydro <- hydrophobicity(testSeq$seq)
+testSeq[, ":="(hydro = hydrophobicity(seq),
+  aacharge = charge(seq))]
 
 # retain only sequences that feature in final AAV table
 testSeq <- testSeq[AAV %in% nsAavs]
@@ -991,16 +1054,35 @@ testSeq <- testSeq[order(match(AAV, nsAavs))]
 
 # calculated mean hydrophobicity weighted by abundance of each individual
 # amino acid variant.
-hzoDat[, meanHydrophob := unlist(lapply(1:nrow(hzoDat), function(s)
-  weighted.mean(x = testSeq$hydro, w = hzoDat[s, .SD, .SDcols = nsAavs])))]
+hzoDat[, ":="(meanHydrophob = unlist(lapply(1:nrow(hzoDat), function(s)
+  weighted.mean(x = testSeq$hydro,
+    w = hzoDat[s, .SD, .SDcols = nsAavs]))),
+  meanCharge = unlist(lapply(1:nrow(hzoDat), function(s)
+  weighted.mean(x = testSeq$aacharge,
+    w = hzoDat[s, .SD, .SDcols = nsAavs]))))]
 
 hzoHydroLm <- lm(meanHydrophob ~ bfi, data = hzoDat)
+hzoChargeLm <- lm(meanCharge ~ bfi, data = hzoDat)
 
 hzoHydro_bfi <- ggplot(hzoDat,
     aes(x = bfi, y = meanHydrophob, col = geol, shape = month)) +
   geom_point(size = 4, alpha = 0.6) +
   labs(x = "Base flow index",
     y = expression(Weighted~mean~italic(hzo)~hydrophobicity),
+    col = "Geology") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+hzoCharge_bfi <- ggplot(hzoDat,
+    aes(x = bfi, y = meanCharge, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(x = "Base flow index",
+    y = expression(Weighted~mean~italic(hzo)~net~charge),
     col = "Geology") +
   scale_color_viridis(discrete = T) +
   theme_bw() +
@@ -1376,36 +1458,44 @@ ggsave("../figures/bootstrapped_coefficients.pdf", coefPlot, height = 4,
 
 # merge data for aob and aoa hydro plot
 hydroData <- rbindlist(list(
-  AOA = aoaDat[, .(bfi, geol, month, meanHydrophob)],
-  AOB = aobDat[, .(bfi, geol, month, meanHydrophob)]),
+  AOA = aoaDat[, .(bfi, geol, month, meanHydrophob, meanCharge)],
+  AOB = aobDat[, .(bfi, geol, month, meanHydrophob, meanCharge)]),
   idcol = T)
 
+hydroData <- melt(hydroData, id.vars = c(".id", "bfi", "geol", "month"))
+
 hydroPredData <- data.table(bfi = seq(min(dat$bfi), max(dat$bfi), 0.005))
-hydroPreds <- lapply(list(aoaHydroLm, aobHydroLm), function(x)
+hydroPreds <- lapply(list(
+  aoaHydroLm, aoaChargeLm, aobHydroLm, aobChargeLm), function(x)
   predict(x, newdata = hydroPredData, se.fit = T))
 
-allHydroPreds <- data.table(bfi = rep(hydroPredData$bfi, times = 2),
-    .id = rep(c("AOA", "AOB"), each = nrow(hydroPredData)),
-    prediction = c(hydroPreds[[1]]$fit, hydroPreds[[2]]$fit),
-    se = c(hydroPreds[[1]]$se.fit, hydroPreds[[2]]$se.fit))
+allHydroPreds <- data.table(bfi = rep(hydroPredData$bfi, times = 4),
+    .id = rep(c("AOA", "AOB"), each = 2 * nrow(hydroPredData)),
+    value = c(
+      hydroPreds[[1]]$fit, hydroPreds[[2]]$fit, hydroPreds[[3]]$fit,
+        hydroPreds[[4]]$fit),
+    variable = rep(c(rep("meanHydrophob", times = nrow(hydroPredData)),
+      rep("meanCharge", times = nrow(hydroPredData))), times = 2),
+    se = c(hydroPreds[[1]]$se.fit, hydroPreds[[2]]$se.fit, hydroPreds[[3]]$se.fit, hydroPreds[[4]]$se.fit))
 
-allHydroPreds[, ":="(uppCI = prediction + (1.96 * se),
-  lowCI = prediction - (1.96 * se),
+allHydroPreds[, ":="(uppCI = value + (1.96 * se),
+  lowCI = value - (1.96 * se),
   geol = NA,
   month = NA)]
 
 # need to fix geol legend
-hydroPlot <- ggplot(hydroData,
-    aes(x = bfi, y = meanHydrophob, fill = geol, shape = month)) +
+hydroPlot <- ggplot(hydroData[variable == "meanHydrophob"],
+    aes(x = bfi, y = value, fill = geol, shape = month)) +
   geom_point(size = 4, alpha = 0.7) +
-  facet_wrap(~.id, scales = "free_y") +
+  facet_wrap(~ .id, scales = "free_y") +
   scale_shape_manual("Sample month", values = c(21, 22)) +
   scale_fill_manual("Geology", values = c("white", "grey", "darkseagreen3")) +
   guides(fill = guide_legend(override.aes=list(shape=21))) +
-  geom_ribbon(data = allHydroPreds,
-    aes(x = bfi, y = prediction, ymin = lowCI, ymax = uppCI),
+  geom_ribbon(data = allHydroPreds[variable == "meanHydrophob"],
+    aes(x = bfi, y = value, ymin = lowCI, ymax = uppCI),
     alpha = 0.4, fill = "grey", colour = NA) +
-  geom_line(data = allHydroPreds, aes(x = bfi, y = prediction),
+  geom_line(data = allHydroPreds[variable == "meanHydrophob"],
+    aes(x = bfi, y = value),
     linetype = 1) +
   labs(x = "Base flow index", y = "Average hydrophobicity") +
   theme_bw() +
@@ -1416,7 +1506,37 @@ hydroPlot <- ggplot(hydroData,
     strip.text.x = element_text(size = 14),
     panel.grid = element_blank())
 
-ggsave("../figures/aoa_aob_hyrdo.pdf", hydroPlot, height = 4, width = 9,
+chargePlot <- ggplot(hydroData[variable == "meanCharge"],
+    aes(x = bfi, y = value, fill = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.7) +
+  facet_wrap(~ .id, scales = "free_y") +
+  scale_shape_manual("Sample month", values = c(21, 22)) +
+  scale_fill_manual("Geology", values = c("white", "grey", "darkseagreen3")) +
+  guides(fill = guide_legend(override.aes=list(shape=21))) +
+  geom_ribbon(data = allHydroPreds[variable == "meanCharge"],
+    aes(x = bfi, y = value, ymin = lowCI, ymax = uppCI),
+    alpha = 0.4, fill = "grey", colour = NA) +
+  geom_line(data = allHydroPreds[variable == "meanCharge"],
+    aes(x = bfi, y = value),
+    linetype = 1) +
+  labs(x = "Base flow index", y = "Average net charge") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    strip.text.x = element_text(size = 14),
+    panel.grid = element_blank())
+
+plotLegend <- cowplot::get_legend(hydroPlot)
+
+hydroPlot <- hydroPlot + theme(legend.position = "none")
+chargePlot <- chargePlot + theme(legend.position = "none")
+
+aoAminoPanel <-((hydroPlot / chargePlot) | plotLegend) +
+  plot_layout(widths = c(1, 0.2))
+
+ggsave("../figures/aoa_aob_hyrdo.pdf", aoAminoPanel, height = 8, width = 9,
   device = "pdf")
 
 # aoa:aob ratio
