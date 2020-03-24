@@ -57,6 +57,8 @@ pmoaDat[, (scoreCols) := as.data.table(scores(nmdsRes))]
 pmoaBfiEuclid <- vegdist(pmoaDat$bfi, "euclid")
 
 pmoaAavBfiDat <- data.table(dissim = as.vector(pmoaBetaMat[[3]]),
+  turnover = as.vector(pmoaBetaMat[[1]]),
+  nestedness = as.vector(pmoaBetaMat[[2]]),
   bfiSim = as.vector(pmoaBfiEuclid), type = "AAV")
 
 # calculate pmoA AAV richness
@@ -162,6 +164,8 @@ pmoaOtuDat[, (scoreCols) := as.data.table(scores(nmdsRes))]
 pmoaBfiOtuEuclid <- vegdist(pmoaOtuDat$bfi, "euclid")
 
 pmoaOtuBfiDat <- data.table(dissim = as.vector(pmoaBetaOtuMat[[3]]),
+  turnover = as.vector(pmoaBetaOtuMat[[1]]),
+  nestedness = as.vector(pmoaBetaOtuMat[[2]]),
   bfiSim = as.vector(pmoaBfiOtuEuclid), type = "OTU")
 
 # pmoa negative exponential decay model
@@ -215,22 +219,23 @@ pmoaOtuDat[, richness := specnumber(.SD), .SDcols = otuCols]
 pmoaRichness <- rbindlist(list(AAV = pmoaDat[, .(bfi, geol, richness, month)],
   OTU = pmoaOtuDat[, .(bfi, geol, richness, month)]), idcol = "type")
 
+# AAV richness models
 pmoaAavRichness <- glm.nb(richness ~ bfi, data = pmoaRichness[type == "AAV"])
-pmoaAavMonthRichness <- glm.nb(richness ~ month + bfi,
+pmoaAavMonthRichness <- glm.nb(richness ~ month * bfi,
   data = pmoaRichness[type == "AAV"])
-pmoaOtuRichness <- glm.nb(richness ~ bfi, data = pmoaRichness[type == "OTU"])
-pmoaOtuMonthRichness <- glm.nb(richness ~ month + bfi,
-  data = pmoaRichness[type == "OTU"])
+anova(pmoaAavMonthRichness, pmoaAavRichness)
+AIC(pmoaAavMonthRichness, pmoaAavRichness)
 
-lapply(list(
-  pmoaAavRichness, pmoaAavMonthRichness, pmoaOtuRichness, pmoaOtuMonthRichness),
-  summary)
+# OTU richness models
+pmoaOtuRichness <- glm.nb(richness ~ bfi, data = pmoaRichness[type == "OTU"])
+pmoaOtuMonthRichness <- glm.nb(richness ~ month * bfi,
+  data = pmoaRichness[type == "OTU"])
+anova(pmoaOtuMonthRichness, pmoaOtuRichness)
+AIC(pmoaOtuMonthRichness, pmoaOtuRichness)
+
 lapply(list(
   pmoaAavRichness, pmoaAavMonthRichness, pmoaOtuRichness, pmoaOtuMonthRichness),
   Dsquared, adjust = T)
-
-lapply(list(
-  pmoaAavRichness, pmoaAavMonthRichness, pmoaOtuRichness, pmoaOtuMonthRichness), function(x) exp(coef(x)))
 ############################ MCRA analysis #####################################
 
 mcra <- fread("mcrA_AAV.txt")
@@ -273,6 +278,8 @@ mcraDat[, (scoreCols) := as.data.table(scores(nmdsRes))]
 mcraBfiEuclid <- vegdist(mcraDat$bfi, "euclid")
 
 mcraAavBfiDat <- data.table(dissim = as.vector(mcraBetaMat[[3]]),
+  turnover = as.vector(mcraBetaMat[[1]]),
+  nestedness = as.vector(mcraBetaMat[[2]]),
   bfiSim = as.vector(mcraBfiEuclid), type = "AAV")
 
 # calculate mcra AAV richness
@@ -334,7 +341,8 @@ mcraCharge_bfi <- ggplot(mcraDat,
 
 mcraHydroLm <- lm(meanHydrophob ~ bfi, data = mcraDat)
 mcraChargeLm <- lm(meanCharge ~ bfi, data = mcraDat)
-# compare to dna OTUS
+
+# compare to dna OTUs
 otus <- fread("mcrAOtuTab.txt")
 colnames(otus)[1] <- "OTU"
 
@@ -376,6 +384,8 @@ mcraOtuDat[, (scoreCols) := as.data.table(scores(nmdsRes))]
 mcraBfiOtuEuclid <- vegdist(mcraOtuDat$bfi, "euclid")
 
 mcraOtuBfiDat <- data.table(dissim = as.vector(mcraBetaOtuMat[[3]]),
+  turnover = as.vector(mcraBetaOtuMat[[1]]),
+  nestedness = as.vector(mcraBetaOtuMat[[2]]),
   bfiSim = as.vector(mcraBfiOtuEuclid), type = "OTU")
 
 # mcra negative exponential decay model
@@ -400,21 +410,22 @@ mcraOtuDat[, richness := specnumber(.SD), .SDcols = otuCols]
 mcraRichness <- rbindlist(list(AAV = mcraDat[, .(bfi, geol, richness, month)],
   OTU = mcraOtuDat[, .(bfi, geol, richness, month)]), idcol = "type")
 
+# AAV richness models
 mcraAavRichness <- glm.nb(richness ~ bfi, data = mcraRichness[type == "AAV"])
-mcraAavMonthRichness <- glm.nb(richness ~ month + bfi,
+mcraAavMonthRichness <- glm.nb(richness ~ bfi * month,
   data = mcraRichness[type == "AAV"])
+anova(mcraAavMonthRichness, mcraAavRichness)
+AIC(mcraAavMonthRichness, mcraAavRichness)
+
 mcraOtuRichness <- glm.nb(richness ~ bfi, data = mcraRichness[type == "OTU"])
-mcraOtuMonthRichness <- glm.nb(richness ~ month + bfi,
+mcraOtuMonthRichness <- glm.nb(richness ~ bfi * month,
   data = mcraRichness[type == "OTU"])
-lapply(list(
-  mcraAavRichness, mcraAavMonthRichness, mcraOtuRichness, mcraOtuMonthRichness),
-  summary)
+anova(mcraOtuMonthRichness, mcraOtuRichness)
+AIC(mcraOtuMonthRichness, mcraOtuRichness)
+
 lapply(list(
   mcraAavRichness, mcraAavMonthRichness, mcraOtuRichness, mcraOtuMonthRichness),
   Dsquared, adjust = T)
-lapply(list(
-  mcraAavRichness, mcraAavMonthRichness, mcraOtuRichness, mcraOtuMonthRichness),
-  function(x) exp(coef(x)))
 
 ################################## nirS analysis ###############################
 nirs <- fread("nirS_AAV.txt")
@@ -457,6 +468,8 @@ nirsDat[, (scoreCols) := as.data.table(scores(nmdsRes))]
 nirsBfiEuclid <- vegdist(nirsDat$bfi, "euclid")
 
 nirsAavBfiDat <- data.table(dissim = as.vector(nirsBetaMat[[3]]),
+  turnover = as.vector(nirsBetaMat[[1]]),
+  nestedness = as.vector(nirsBetaMat[[2]]),
   bfiSim = as.vector(nirsBfiEuclid), type = "AAV")
 
 nirsDat[, richness := specnumber(.SD), .SDcols = nsAavs]
@@ -563,6 +576,8 @@ nirsOtuDat[, (scoreCols) := as.data.table(scores(nmdsRes))]
 nirsBfiOtuEuclid <- vegdist(nirsOtuDat$bfi, "euclid")
 
 nirsOtuBfiDat <- data.table(dissim = as.vector(nirsBetaOtuMat[[3]]),
+  turnover = as.vector(nirsBetaOtuMat[[1]]),
+  nestedness = as.vector(nirsBetaOtuMat[[2]]),
   bfiSim = as.vector(nirsBfiOtuEuclid), type = "OTU")
 
 # mcra negative exponential decay model
@@ -587,21 +602,23 @@ nirsOtuDat[, richness := specnumber(.SD), .SDcols = otuCols]
 nirsRichness <- rbindlist(list(AAV = nirsDat[, .(bfi, geol, richness, month)],
   OTU = nirsOtuDat[, .(bfi, geol, richness, month)]), idcol = "type")
 
+# AAV richness models
 nirsAavRichness <- glm.nb(richness ~ bfi, data = nirsRichness[type == "AAV"])
-nirsOtuRichness <- glm.nb(richness ~ bfi, data = nirsRichness[type == "OTU"])
-nirsAavMonthRichness <- glm.nb(richness ~ month + bfi,
+nirsAavMonthRichness <- glm.nb(richness ~ month * bfi,
   data = nirsRichness[type == "AAV"])
-nirsOtuMonthRichness <- glm.nb(richness ~ month + bfi,
+anova(nirsAavRichness, nirsAavMonthRichness)
+AIC(nirsAavRichness, nirsAavMonthRichness)
+
+# OTU richness models
+nirsOtuRichness <- glm.nb(richness ~ bfi, data = nirsRichness[type == "OTU"])
+nirsOtuMonthRichness <- glm.nb(richness ~ month * bfi,
   data = nirsRichness[type == "OTU"])
-lapply(list(
-  nirsAavRichness, nirsAavMonthRichness, nirsOtuRichness, nirsOtuMonthRichness),
-  summary)
+anova(nirsOtuRichness, nirsOtuMonthRichness)
+AIC(nirsOtuRichness, nirsOtuMonthRichness)
+
 lapply(list(
   nirsAavRichness, nirsAavMonthRichness, nirsOtuRichness, nirsOtuMonthRichness),
   Dsquared, adjust = T)
-lapply(list(
-  nirsAavRichness, nirsAavMonthRichness, nirsOtuRichness, nirsOtuMonthRichness),
-  function(x) exp(coef(x)))
 
 ################################## AOB Analysis ################################
 aob <- fread("AOB_AAV.txt")
@@ -644,6 +661,8 @@ aobDat[, (scoreCols) := as.data.table(scores(nmdsRes))]
 aobBfiEuclid <- vegdist(aobDat$bfi, "euclid")
 
 aobAavBfiDat <- data.table(dissim = as.vector(aobBetaMat[[3]]),
+  turnover = as.vector(aobBetaMat[[1]]),
+  nestedness = as.vector(aobBetaMat[[2]]),
   bfiSim = as.vector(aobBfiEuclid), type = "AAV")
 
 aobDat[, richness := specnumber(.SD), .SDcols = nsAavs]
@@ -763,6 +782,8 @@ aob_OTU_nmds <- ggplot(aobOtuDat,
 aobBfiOtuEuclid <- vegdist(aobOtuDat$bfi, "euclid")
 
 aobOtuBfiDat <- data.table(dissim = as.vector(aobBetaOtuMat[[3]]),
+  turnover = as.vector(aobBetaOtuMat[[1]]),
+  nestedness = as.vector(aobBetaOtuMat[[2]]),
   bfiSim = as.vector(aobBfiOtuEuclid), type = "OTU")
 
 # mcra negative exponential decay model
@@ -787,19 +808,22 @@ aobOtuDat[, richness := specnumber(.SD), .SDcols = otuCols]
 aobRichness <- rbindlist(list(AAV = aobDat[, .(bfi, geol, richness, month)],
   OTU = aobOtuDat[, .(bfi, geol, richness, month)]), idcol = "type")
 
+# AAV richness models
 aobAavRichness <- glm.nb(richness ~ bfi, data = aobRichness[type == "AAV"])
-aobOtuRichness <- glm.nb(richness ~ bfi, data = aobRichness[type == "OTU"])
-aobAavMonthRichness <- glm.nb(richness ~ month + bfi,
+aobAavMonthRichness <- glm.nb(richness ~ month * bfi,
   data = aobRichness[type == "AAV"])
-aobOtuMonthRichness <- glm.nb(richness ~ month + bfi,
+anova(aobAavMonthRichness, aobAavRichness)
+AIC(aobAavMonthRichness, aobAavRichness)
+
+# OTU richness models
+aobOtuRichness <- glm.nb(richness ~ bfi, data = aobRichness[type == "OTU"])
+aobOtuMonthRichness <- glm.nb(richness ~ month * bfi,
   data = aobRichness[type == "OTU"])
-lapply(list(
-  aobAavRichness, aobAavMonthRichness, aobOtuRichness, aobOtuMonthRichness),
-  summary)
+anova(aobOtuMonthRichness, aobOtuRichness)
+AIC(aobOtuMonthRichness, aobOtuRichness)
+
 lapply(list(
   aobAavRichness, aobAavMonthRichness, aobOtuRichness, aobOtuMonthRichness), Dsquared, adjust = T)
-lapply(list(
-  aobAavRichness, aobAavMonthRichness, aobOtuRichness, aobOtuMonthRichness), function(x) exp(coef(x)))
 
 ################################## AOA Analysis ################################
 aoa <- fread("AOA_AAV.txt")
@@ -842,6 +866,8 @@ aoaDat[, (scoreCols) := as.data.table(scores(nmdsRes))]
 aoaBfiEuclid <- vegdist(aoaDat$bfi, "euclid")
 
 aoaAavBfiDat <- data.table(dissim = as.vector(aoaBetaMat[[3]]),
+turnover = as.vector(aoaBetaMat[[1]]),
+nestedness = as.vector(aoaBetaMat[[2]]),
   bfiSim = as.vector(aoaBfiEuclid), type = "AAV")
 
 aoaDat[, richness := specnumber(.SD), .SDcols = nsAavs]
@@ -948,6 +974,8 @@ aoaOtuDat[, (scoreCols) := as.data.table(scores(nmdsRes))]
 aoaBfiOtuEuclid <- vegdist(aoaOtuDat$bfi, "euclid")
 
 aoaOtuBfiDat <- data.table(dissim = as.vector(aoaBetaOtuMat[[3]]),
+  turnover = as.vector(aoaBetaOtuMat[[1]]),
+  nestedness = as.vector(aoaBetaOtuMat[[2]]),
   bfiSim = as.vector(aoaBfiOtuEuclid), type = "OTU")
 
 # mcra negative exponential decay model
@@ -972,21 +1000,23 @@ aoaOtuDat[, richness := specnumber(.SD), .SDcols = otuCols]
 aoaRichness <- rbindlist(list(AAV = aoaDat[, .(bfi, geol, richness, month)],
   OTU = aoaOtuDat[, .(bfi, geol, richness, month)]), idcol = "type")
 
+# AAV richness models
 aoaAavRichness <- glm.nb(richness ~ bfi, data = aoaRichness[type == "AAV"])
-aoaOtuRichness <- glm.nb(richness ~ bfi, data = aoaRichness[type == "OTU"])
-aoaAavMonthRichness <- glm.nb(richness ~ month + bfi,
+aoaAavMonthRichness <- glm.nb(richness ~ month * bfi,
   data = aoaRichness[type == "AAV"])
-aoaOtuMonthRichness <- glm.nb(richness ~ month + bfi,
+anova(aoaAavMonthRichness, aoaAavRichness)
+AIC(aoaAavMonthRichness, aoaAavRichness)
+
+# OTU richness models
+aoaOtuRichness <- glm.nb(richness ~ bfi, data = aoaRichness[type == "OTU"])
+aoaOtuMonthRichness <- glm.nb(richness ~ month * bfi,
   data = aoaRichness[type == "OTU"])
-lapply(list(
-  aoaAavRichness, aoaAavMonthRichness, aoaOtuRichness, aoaOtuMonthRichness),
-  summary)
+anova(aoaOtuMonthRichness, aoaOtuRichness)
+AIC(aoaOtuMonthRichness, aoaOtuRichness)
+
 lapply(list(
   aoaAavRichness, aoaAavMonthRichness, aoaOtuRichness, aoaOtuMonthRichness),
   Dsquared, adjust = T)
-lapply(list(
-  aoaAavRichness, aoaAavMonthRichness, aoaOtuRichness, aoaOtuMonthRichness),
-  function(x) exp(coef(x)))
 ################################ anammox hzo analysis ##########################
 
 hzo <- fread("hzo_AAV.txt")
@@ -1029,9 +1059,10 @@ hzoDat[, (scoreCols) := as.data.table(scores(nmdsRes))]
 hzoBfiEuclid <- vegdist(hzoDat$bfi, "euclid")
 
 hzoAavBfiDat <- data.table(dissim = as.vector(hzoBetaMat[[3]]),
+  turnover = as.vector(hzoBetaMat[[1]]),
+  nestedness = as.vector(hzoBetaMat[[2]]),
   bfiSim = as.vector(hzoBfiEuclid))
 
-# think about using decay.model from betapart package
 # test association between bfi and hzo AAV richness.
 hzoDat[, richness := specnumber(.SD), .SDcols = nsAavs]
 
@@ -1135,6 +1166,8 @@ hzoOtuDat[, (scoreCols) := as.data.table(scores(nmdsRes))]
 hzoBfiOtuEuclid <- vegdist(hzoOtuDat$bfi, "euclid")
 
 hzoOtuBfiDat <- data.table(dissim = as.vector(hzoBetaOtuMat[[3]]),
+  turnover = as.vector(hzoBetaOtuMat[[1]]),
+  nestedness = as.vector(hzoBetaOtuMat[[2]]),
   bfiSim = as.vector(hzoBfiOtuEuclid))
 
 # hzo negative exponential decay model
@@ -1273,21 +1306,23 @@ hzoOtuDat[, richness := specnumber(.SD), .SDcols = otuCols]
 hzoRichness <- rbindlist(list(AAV = hzoDat[, .(bfi, geol, richness, month)],
   OTU = hzoOtuDat[, .(bfi, geol, richness, month)]), idcol = "type")
 
+# aav richness models
 hzoAavRichness <- glm.nb(richness ~ bfi, data = hzoRichness[type == "AAV"])
-hzoMonthAavRichness <- glm.nb(richness ~ month + bfi,
+hzoMonthAavRichness <- glm.nb(richness ~ month * bfi,
   data = hzoRichness[type == "AAV"])
+anova(hzoMonthAavRichness, hzoAavRichness)
+AIC(hzoMonthAavRichness, hzoAavRichness)
+
+# otu richness models
 hzoOtuRichness <- glm.nb(richness ~ bfi, data = hzoRichness[type == "OTU"])
-hzoMonthOtuRichness <- glm.nb(richness ~ month + bfi,
+hzoMonthOtuRichness <- glm.nb(richness ~ month * bfi,
   data = hzoRichness[type == "OTU"])
-lapply(list(
-  hzoAavRichness, hzoMonthAavRichness, hzoOtuRichness, hzoMonthOtuRichness),
-  summary)
+anova(hzoMonthOtuRichness, hzoOtuRichness)
+AIC(hzoMonthOtuRichness, hzoOtuRichness)
+
 lapply(list(
   hzoAavRichness, hzoMonthAavRichness, hzoOtuRichness, hzoMonthOtuRichness),
   Dsquared, adjust = T)
-lapply(list(
-  hzoAavRichness, hzoMonthAavRichness, hzoOtuRichness, hzoMonthOtuRichness),
-  function(x) exp(coef(x)))
 
 # assemble facet plots for AAV and OTU richness for each gene
 richList <- list(aoa = aoaRichness,
