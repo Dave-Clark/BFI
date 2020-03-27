@@ -1300,6 +1300,41 @@ fullPanel <- ggplot(distData, aes(x = bfiSim, y = dissim, col = type)) +
 ggsave("../figures/full_dist_panel.pdf", fullPanel, height = 10, width = 8,
   device = cairo_pdf)
 
+# nestedness vs turnover comparison
+nesSimPanel <- ggplot(distData, aes(x = nestedness, y = turnover, col = type)) +
+  geom_point(alpha = 0.6, size = 3) +
+  facet_wrap(~gene, labeller = label_parsed) +
+  labs(x = "Nestedness", y = "Turnover") +
+  scale_colour_manual(values = c(darkCol, lightCol), name = "") +
+  geom_abline(intercept = 0, slope = 1, linetype = 2, colour = "grey",
+    size = 1.1) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    panel.grid = element_blank(),
+    strip.text.x = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14))
+
+ggsave("../figures/nes_tvf_panel.pdf", nesSimPanel, height = 7, width = 11,
+  device = "pdf")
+  
+nesPanel <- ggplot(distData, aes(x = bfiSim, y = nestedness, col = type)) +
+  geom_point(alpha = 0.3, size = 3) +
+  facet_wrap(~gene, labeller = label_parsed) +
+  labs(x = "Base flow index", y = "Nestedness") +
+  scale_colour_manual(values = c(darkCol, lightCol), name = "") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    panel.grid = element_blank(),
+    strip.text.x = element_text(size = 14),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14))
+
+ggsave("../figures/nestedness_panel.pdf", nesPanel, height = 7, width = 11,
+  device = "pdf")
+
 # hzo richness analysis
 hzoOtuDat[, richness := specnumber(.SD), .SDcols = otuCols]
 
