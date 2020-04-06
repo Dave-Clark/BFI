@@ -1,6 +1,5 @@
-# need to fix conf intervals for binomial glms, use invLogit function!
-# apply CAI analysis across all genes
-# also calculate %GC index
+# calc stats for turnover and nestedness curves
+# redo figure S2
 
 lapply(c("vegan",
   "ggplot2",
@@ -266,26 +265,77 @@ denovoCAI <- function(pathToSeqs){
     otuCAI <- otuCodonUsage[eff != 0,
       .(CAI = prod(codonWeight) ^ (1 / sum(eff))), by = OTU]
 
+    otuCAI[, OTU := sapply(strsplit(OTU, ";"), "[[", 1)]
   return(otuCAI)
   }
 
-# calculate codon adaptation index for all OTU centroid sequences
+gcContent <- function(pathToSeqs){
+  # load required packages
+  library(seqinr)
+  library(data.table)
+
+  # read in OTU sequences
+  seqs <- read.fasta(pathToSeqs, seqtype = "DNA", as.string = F)
+
+  # calculate GC content for all OTUs
+  otuGC <- rbindlist(lapply(seqs, function(x)
+    data.table(OTU = attr(x, "name"), gc = GC(x, forceToLower = F))))
+
+  otuGC[, OTU := sapply(strsplit(OTU, ";"), "[[", 1)]
+
+  return(otuGC)
+}
+
+# calculate codon adaptation index and GC content for all OTU centroid sequences
 pmoaCAI <- denovoCAI("pmoACentroids.fna")
+pmoaGC <- gcContent("pmoACentroids.fna")
+
+pmoaCAI <- merge(pmoaCAI, pmoaGC, by = "OTU")
 
 # retain only OTUs that feature in final OTU table
-pmoaCAI[, OTU := sapply(strsplit(OTU, ";"), "[[", 1)]
 pmoaCAI <- pmoaCAI[OTU %in% otuCols]
 
 # sort CAI vals according to OTU table
 pmoaCAI <- pmoaCAI[order(match(OTU, otuCols))]
 
 # calculated mean CAI weighted by abundance of each individual OTU
-pmoaOtuDat[, meanCAI := unlist(lapply(1:nrow(pmoaDat), function(s)
-    weighted.mean(x = pmoaCAI$CAI,
-      w = pmoaOtuDat[s, .SD, .SDcols = otuCols])))]
+pmoaOtuDat[, ":="(
+  meanCAI = unlist(lapply(1:nrow(pmoaOtuDat), function(s)
+    weighted.mean(x = pmoaCAI$CAI, w = pmoaOtuDat[s, .SD, .SDcols = otuCols]))),
+  meanGC =  unlist(lapply(1:nrow(pmoaOtuDat), function(s)
+    weighted.mean(x = pmoaCAI$gc, w = pmoaOtuDat[s, .SD, .SDcols = otuCols]))))]
 
+pmoaCAI_plot <- ggplot(pmoaOtuDat,
+    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean codon adaptation index") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
 
+pmoaGC_plot <- ggplot(pmoaOtuDat,
+    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean GC content (%)") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
 
+pmoaCaiLm <- lm(meanCAI ~ bfi, pmoaOtuDat)
+summary(pmoaCaiLm)
+
+pmoaGcLm <- lm(meanGC ~ bfi, pmoaOtuDat)
+summary(pmoaGcLm)
 
 ############################ MCRA analysis #####################################
 
@@ -477,6 +527,57 @@ AIC(mcraOtuMonthRichness, mcraOtuRichness)
 lapply(list(
   mcraAavRichness, mcraAavMonthRichness, mcraOtuRichness, mcraOtuMonthRichness),
   Dsquared, adjust = T)
+
+# calculate codon adaptation index for all OTU centroid sequences
+mcraCAI <- denovoCAI("mcrACentroids.fna")
+mcraGC <- gcContent("mcrACentroids.fna")
+
+mcraCAI <- merge(mcraCAI, mcraGC, by = "OTU")
+
+# retain only OTUs that feature in final OTU table
+mcraCAI <- mcraCAI[OTU %in% otuCols]
+
+# sort CAI vals according to OTU table
+mcraCAI <- mcraCAI[order(match(OTU, otuCols))]
+
+# calculated mean CAI weighted by abundance of each individual OTU
+mcraOtuDat[, ":="(
+  meanCAI = unlist(lapply(1:nrow(mcraOtuDat), function(s)
+    weighted.mean(x = mcraCAI$CAI, w = mcraOtuDat[s, .SD, .SDcols = otuCols]))),
+  meanGC = unlist(lapply(1:nrow(mcraOtuDat), function(s)
+    weighted.mean(x = mcraCAI$gc, w = mcraOtuDat[s, .SD, .SDcols = otuCols]))))]
+
+mcraCAI_plot <- ggplot(mcraOtuDat,
+    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean codon adaptation index") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+mcraGC_plot <- ggplot(mcraOtuDat,
+    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean GC content (%)") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+mcraCaiLm <- lm(meanCAI ~ bfi, mcraOtuDat)
+summary(mcraCaiLm)
+
+mcraGcLm <- lm(meanGC ~ bfi, mcraOtuDat)
+summary(mcraGcLm)
 
 ################################## nirS analysis ###############################
 nirs <- fread("nirS_AAV.txt")
@@ -670,6 +771,57 @@ AIC(nirsOtuRichness, nirsOtuMonthRichness)
 lapply(list(
   nirsAavRichness, nirsAavMonthRichness, nirsOtuRichness, nirsOtuMonthRichness),
   Dsquared, adjust = T)
+
+# calculate codon adaptation index for all OTU centroid sequences
+nirsCAI <- denovoCAI("nirSCentroids.fna")
+nirsGC <- gcContent("nirSCentroids.fna")
+
+nirsCAI <- merge(nirsCAI, nirsGC, by = "OTU")
+
+# retain only OTUs that feature in final OTU table
+nirsCAI <- nirsCAI[OTU %in% otuCols]
+
+# sort CAI vals according to OTU table
+nirsCAI <- nirsCAI[order(match(OTU, otuCols))]
+
+# calculated mean CAI weighted by abundance of each individual OTU
+nirsOtuDat[, ":="(
+  meanCAI = unlist(lapply(1:nrow(nirsOtuDat), function(s)
+    weighted.mean(x = nirsCAI$CAI, w = nirsOtuDat[s, .SD, .SDcols = otuCols]))),
+  meanGC = unlist(lapply(1:nrow(nirsOtuDat), function(s)
+    weighted.mean(x = nirsCAI$gc, w = nirsOtuDat[s, .SD, .SDcols = otuCols]))))]
+
+nirsCAI_plot <- ggplot(nirsOtuDat,
+    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean codon adaptation index") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+nirsGC_plot <- ggplot(nirsOtuDat,
+    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean GC content (%)") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+nirsCaiLm <- lm(meanCAI ~ bfi, nirsOtuDat)
+summary(nirsCaiLm) # signif
+
+nirsGcLm <- lm(meanGC ~ bfi, nirsOtuDat)
+summary(nirsGcLm) # signif
 
 ################################## AOB Analysis ################################
 aob <- fread("AOB_AAV.txt")
@@ -876,6 +1028,54 @@ AIC(aobOtuMonthRichness, aobOtuRichness)
 lapply(list(
   aobAavRichness, aobAavMonthRichness, aobOtuRichness, aobOtuMonthRichness), Dsquared, adjust = T)
 
+# calculate codon adaptation index for all OTU centroid sequences
+aobCAI <- denovoCAI("AOB_amoACentroids.fna")
+aobGC <- gcContent("AOB_amoACentroids.fna")
+aobCAI <- merge(aobCAI, aobGC, by = "OTU")
+
+# retain only OTUs that feature in final OTU table
+aobCAI <- aobCAI[OTU %in% otuCols]
+
+# sort CAI vals according to OTU table
+aobCAI <- aobCAI[order(match(OTU, otuCols))]
+
+# calculated mean CAI weighted by abundance of each individual OTU
+aobOtuDat[, ":="(
+  meanCAI = unlist(lapply(1:nrow(aobOtuDat), function(s)
+    weighted.mean(x = aobCAI$CAI, w = aobOtuDat[s, .SD, .SDcols = otuCols]))),
+  meanGC = unlist(lapply(1:nrow(aobOtuDat), function(s)
+    weighted.mean(x = aobCAI$gc, w = aobOtuDat[s, .SD, .SDcols = otuCols]))))]
+
+aobCAI_plot <- ggplot(aobOtuDat,
+    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean codon adaptation index") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+aobGC_plot <- ggplot(aobOtuDat,
+    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean GC content (%)") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+aobCaiLm <- lm(meanCAI ~ bfi, aobOtuDat)
+summary(aobCaiLm) # signif
+aobGcLm <- lm(meanGC ~ bfi, aobOtuDat)
+summary(aobGcLm)
 ################################## AOA Analysis ################################
 aoa <- fread("AOA_AAV.txt")
 colnames(aoa)[1] <- "AAV"
@@ -1068,6 +1268,58 @@ AIC(aoaOtuMonthRichness, aoaOtuRichness)
 lapply(list(
   aoaAavRichness, aoaAavMonthRichness, aoaOtuRichness, aoaOtuMonthRichness),
   Dsquared, adjust = T)
+
+# calculate codon adaptation index for all OTU centroid sequences
+aoaCAI <- denovoCAI("AOA_amoACentroids.fna")
+aoaGC <- gcContent("AOA_amoACentroids.fna")
+aoaCAI <- merge(aoaCAI, aoaGC, by = "OTU")
+
+
+# retain only OTUs that feature in final OTU table
+aoaCAI <- aoaCAI[OTU %in% otuCols]
+
+# sort CAI vals according to OTU table
+aoaCAI <- aoaCAI[order(match(OTU, otuCols))]
+
+# calculated mean CAI weighted by abundance of each individual OTU
+aoaOtuDat[, ":="(
+  meanCAI = unlist(lapply(1:nrow(aoaOtuDat), function(s)
+    weighted.mean(x = aoaCAI$CAI, w = aoaOtuDat[s, .SD, .SDcols = otuCols]))),
+  meanGC = unlist(lapply(1:nrow(aoaOtuDat), function(s)
+    weighted.mean(x = aoaCAI$gc, w = aoaOtuDat[s, .SD, .SDcols = otuCols]))))]
+
+aoaCAI_plot <- ggplot(aoaOtuDat,
+    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean codon adaptation index") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+aoaGC_plot <- ggplot(aoaOtuDat,
+    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean GC content (%)") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+aoaCaiLm <- lm(meanCAI ~ bfi, aoaOtuDat)
+summary(aoaCaiLm) # signif
+
+aoaGcLm <- lm(meanGC ~ bfi, aoaOtuDat)
+summary(aoaGcLm) # signif
+
 ################################ anammox hzo analysis ##########################
 
 hzo <- fread("hzo_AAV.txt")
@@ -1240,6 +1492,57 @@ hzoOtuFit <- calcDecayFit(hzoOtuDecay)
 hzoAavBoot <- boot.coefs.decay(hzoAavDecay, 1000)
 hzoOtuBoot <- boot.coefs.decay(hzoOtuDecay, 1000)
 hzoBoot <- combineBoots(gene = "hzo", hzoAavBoot, hzoOtuBoot)
+
+# calculate codon adaptation index for all OTU centroid sequences
+hzoCAI <- denovoCAI("hzoCentroids.fna")
+hzoGC <- gcContent("hzoCentroids.fna")
+hzoCAI <- merge(hzoCAI, hzoGC, by = "OTU")
+
+# retain only OTUs that feature in final OTU table
+hzoCAI <- hzoCAI[OTU %in% otuCols]
+
+# sort CAI vals according to OTU table
+hzoCAI <- hzoCAI[order(match(OTU, otuCols))]
+
+# calculated mean CAI weighted by abundance of each individual OTU
+hzoOtuDat[, ":="(
+  meanCAI = unlist(lapply(1:nrow(hzoOtuDat), function(s)
+    weighted.mean(x = hzoCAI$CAI, w = hzoOtuDat[s, .SD, .SDcols = otuCols]))),
+  meanGC = unlist(lapply(1:nrow(hzoOtuDat), function(s)
+    weighted.mean(x = hzoCAI$gc, w = hzoOtuDat[s, .SD, .SDcols = otuCols]))))]
+
+hzoCAI_plot <- ggplot(hzoOtuDat,
+    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean codon adaptation index") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+hzoGC_plot <- ggplot(hzoOtuDat,
+    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.6) +
+  labs(col = "Geology", shape = "Month", x = "Base flow index",
+    y = "Weighted mean GC content (%)") +
+  scale_color_viridis(discrete = T) +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+hzoCaiLm <- lm(meanCAI ~ bfi, hzoOtuDat)
+summary(hzoCaiLm) # signif
+hzoGcLm <- lm(meanGC~ bfi, hzoOtuDat)
+summary(hzoGcLm) # signif
+
+##################### Figures with all genes ###################################
 
 # combine all dist data
 distData <- rbindlist(list(
@@ -1562,7 +1865,7 @@ coefPlot <- ggplot(bootCoefs,
     aes(x = coefs, y = gene, fill = type, col = type)) +
   geom_density_ridges(alpha = 0.6, scale = 0.9, rel_min_height = 0.005)+
   theme_bw() +
-  labs(x = "Boostrapped coefficient estimate", y = "", fill = "", col = "") +
+  labs(x = "Bootstrapped coefficient estimate", y = "", fill = "", col = "") +
   scale_fill_manual(values = c(darkCol, lightCol)) +
   scale_color_manual(values = c(darkCol, lightCol)) +
   scale_y_discrete(expand = c(0.01, 0),
