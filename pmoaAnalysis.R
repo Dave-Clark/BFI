@@ -1,3 +1,7 @@
+# need to fix conf intervals for binomial glms, use invLogit function!
+# apply CAI analysis across all genes
+# also calculate %GC index
+
 lapply(c("vegan",
   "ggplot2",
   "data.table",
@@ -236,6 +240,53 @@ AIC(pmoaOtuMonthRichness, pmoaOtuRichness)
 lapply(list(
   pmoaAavRichness, pmoaAavMonthRichness, pmoaOtuRichness, pmoaOtuMonthRichness),
   Dsquared, adjust = T)
+
+denovoCAI <- function(pathToSeqs){
+    # load required packages
+    library(seqinr)
+    library(data.table)
+
+    # read in OTU sequences
+    seqs <- read.fasta(pathToSeqs, seqtype = "DNA", as.string = F)
+
+    # calculate codon usage stats for all OTUs
+    otuCodonUsage <- rbindlist(lapply(seqs, uco, as.data.frame = T),
+      idcol = "OTU")
+
+    # calculate global weights for each codon, within each amino acid
+    globCodonWeights <- otuCodonUsage[, sum(eff), by = c("AA", "codon")][,
+      weight := V1/max(V1), by = "AA"]
+
+    # merge calculated codon weights into dt with observed codon frequencies
+    otuCodonUsage[globCodonWeights, weight := i.weight, on = c(codon = "codon")]
+
+    # calculate geometric weight for each codon
+    otuCodonUsage[, codonWeight := weight ^ eff]
+
+    otuCAI <- otuCodonUsage[eff != 0,
+      .(CAI = prod(codonWeight) ^ (1 / sum(eff))), by = OTU]
+
+  return(otuCAI)
+  }
+
+# calculate codon adaptation index for all OTU centroid sequences
+pmoaCAI <- denovoCAI("pmoACentroids.fna")
+
+# retain only OTUs that feature in final OTU table
+pmoaCAI[, OTU := sapply(strsplit(OTU, ";"), "[[", 1)]
+pmoaCAI <- pmoaCAI[OTU %in% otuCols]
+
+# sort CAI vals according to OTU table
+pmoaCAI <- pmoaCAI[order(match(OTU, otuCols))]
+
+# calculated mean CAI weighted by abundance of each individual OTU
+pmoaOtuDat[, meanCAI := unlist(lapply(1:nrow(pmoaDat), function(s)
+    weighted.mean(x = pmoaCAI$CAI,
+      w = pmoaOtuDat[s, .SD, .SDcols = otuCols])))]
+
+
+
+
 ############################ MCRA analysis #####################################
 
 mcra <- fread("mcrA_AAV.txt")
@@ -1318,7 +1369,7 @@ nesSimPanel <- ggplot(distData, aes(x = nestedness, y = turnover, col = type)) +
 
 ggsave("../figures/nes_tvf_panel.pdf", nesSimPanel, height = 7, width = 11,
   device = "pdf")
-  
+
 nesPanel <- ggplot(distData, aes(x = bfiSim, y = nestedness, col = type)) +
   geom_point(alpha = 0.3, size = 3) +
   facet_wrap(~gene, labeller = label_parsed) +
