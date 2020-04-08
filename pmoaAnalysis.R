@@ -1,4 +1,3 @@
-# calc stats for turnover and nestedness curves
 # redo figure S2
 
 lapply(c("vegan",
@@ -175,6 +174,19 @@ pmoaOtuBfiDat <- data.table(dissim = as.vector(pmoaBetaOtuMat[[3]]),
 pmoaAavDecay <- decay.model(pmoaBetaMat[[3]], pmoaBfiEuclid,
   model.type = "exponential", y.type = "dissimilarities", perm = 1000)
 pmoaOtuDecay <- decay.model(pmoaBetaOtuMat[[3]], pmoaBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
+# neg. exponential decay models for tvr and nestedness components
+# nestedness
+pmoaAavNesDecay <- decay.model(pmoaBetaMat[[2]], pmoaBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+pmoaOtuNesDecay <- decay.model(pmoaBetaOtuMat[[2]], pmoaBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
+# tvr
+pmoaAavTvrDecay <- decay.model(pmoaBetaMat[[1]], pmoaBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+pmoaOtuTvrDecay <- decay.model(pmoaBetaOtuMat[[1]], pmoaBfiOtuEuclid,
   model.type = "exponential", y.type = "dissimilarities", perm = 1000)
 
 # function to calculate prediction curve for range of data
@@ -495,6 +507,17 @@ mcraAavDecay <- decay.model(mcraBetaMat[[3]], mcraBfiEuclid,
 mcraOtuDecay <- decay.model(mcraBetaOtuMat[[3]], mcraBfiOtuEuclid,
   model.type = "exponential", y.type = "dissimilarities", perm = 1000)
 
+# nestedness
+mcraAavNesDecay <- decay.model(mcraBetaMat[[2]], mcraBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+mcraOtuNesDecay <- decay.model(mcraBetaOtuMat[[2]], mcraBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
+mcraAavTvrDecay <- decay.model(mcraBetaMat[[1]], mcraBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+mcraOtuTvrDecay <- decay.model(mcraBetaOtuMat[[1]], mcraBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
 # combine the two dissim data frames, then calculate fits for both decay models
 mcraDists <- rbindlist(list(mcraAavBfiDat, mcraOtuBfiDat))
 mcraAavFit <- calcDecayFit(mcraAavDecay)
@@ -736,6 +759,18 @@ nirsOtuBfiDat <- data.table(dissim = as.vector(nirsBetaOtuMat[[3]]),
 nirsAavDecay <- decay.model(nirsBetaMat[[3]], nirsBfiEuclid,
   model.type = "exponential", y.type = "dissimilarities", perm = 1000)
 nirsOtuDecay <- decay.model(nirsBetaOtuMat[[3]], nirsBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
+# nestedness
+nirsAavNesDecay <- decay.model(nirsBetaMat[[2]], nirsBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+nirsOtuNesDecay <- decay.model(nirsBetaOtuMat[[2]], nirsBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
+# turnover
+nirsAavTvrDecay <- decay.model(nirsBetaMat[[1]], nirsBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+nirsOtuTvrDecay <- decay.model(nirsBetaOtuMat[[1]], nirsBfiOtuEuclid,
   model.type = "exponential", y.type = "dissimilarities", perm = 1000)
 
 # combine the two dissim data frames, then calculate fits for both decay models
@@ -995,6 +1030,18 @@ aobAavDecay <- decay.model(aobBetaMat[[3]], aobBfiEuclid,
 aobOtuDecay <- decay.model(aobBetaOtuMat[[3]], aobBfiOtuEuclid,
   model.type = "exponential", y.type = "dissimilarities", perm = 1000)
 
+# nestedness
+aobAavNesDecay <- decay.model(aobBetaMat[[2]], aobBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+aobOtuNesDecay <- decay.model(aobBetaOtuMat[[2]], aobBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
+# turnover
+aobAavTvrDecay <- decay.model(aobBetaMat[[1]], aobBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+aobOtuTvrDecay <- decay.model(aobBetaOtuMat[[1]], aobBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
 # combine the two dissim data frames, then calculate fits for both decay models
 aobDists <- rbindlist(list(aobAavBfiDat, aobOtuBfiDat))
 aobAavFit <- calcDecayFit(aobAavDecay)
@@ -1233,6 +1280,18 @@ aoaOtuBfiDat <- data.table(dissim = as.vector(aoaBetaOtuMat[[3]]),
 aoaAavDecay <- decay.model(aoaBetaMat[[3]], aoaBfiEuclid,
   model.type = "exponential", y.type = "dissimilarities", perm = 1000)
 aoaOtuDecay <- decay.model(aoaBetaOtuMat[[3]], aoaBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
+# nestedness
+aoaAavNesDecay <- decay.model(aoaBetaMat[[2]], aoaBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+aoaOtuNesDecay <- decay.model(aoaBetaOtuMat[[2]], aoaBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
+# turnover
+aoaAavTvrDecay <- decay.model(aoaBetaMat[[1]], aoaBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+aoaOtuTvrDecay <- decay.model(aoaBetaOtuMat[[1]], aoaBfiOtuEuclid,
   model.type = "exponential", y.type = "dissimilarities", perm = 1000)
 
 # combine the two dissim data frames, then calculate fits for both decay models
@@ -1474,9 +1533,21 @@ hzoOtuBfiDat <- data.table(dissim = as.vector(hzoBetaOtuMat[[3]]),
   bfiSim = as.vector(hzoBfiOtuEuclid))
 
 # hzo negative exponential decay model
-hzoAavDecay <- decay.model(betaMat[[3]], hzoBfiEuclid,
+hzoAavDecay <- decay.model(hzoBetaMat[[3]], hzoBfiEuclid,
   model.type = "exponential", y.type = "dissimilarities", perm = 1000)
-hzoOtuDecay <- decay.model(betaOtuMat[[3]], hzoBfiOtuEuclid,
+hzoOtuDecay <- decay.model(hzoBetaOtuMat[[3]], hzoBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
+# nestedness
+hzoAavNesDecay <- decay.model(hzoBetaMat[[2]], hzoBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+hzoOtuNesDecay <- decay.model(hzoBetaOtuMat[[2]], hzoBfiOtuEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+
+# turnover
+hzoAavTvrDecay <- decay.model(hzoBetaMat[[1]], hzoBfiEuclid,
+  model.type = "exponential", y.type = "dissimilarities", perm = 1000)
+hzoOtuTvrDecay <- decay.model(hzoBetaOtuMat[[1]], hzoBfiOtuEuclid,
   model.type = "exponential", y.type = "dissimilarities", perm = 1000)
 
 # give dissim data tables a type column
