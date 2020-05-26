@@ -1954,24 +1954,31 @@ ggsave("../figures/bootstrapped_coefficients.pdf", coefPlot, height = 4,
 # merge data for aob and aoa hydro plot
 hydroData <- rbindlist(list(
   AOA = aoaDat[, .(bfi, geol, month, meanHydrophob, meanCharge)],
-  AOB = aobDat[, .(bfi, geol, month, meanHydrophob, meanCharge)]),
-  idcol = T)
+  AOA = aoaOtuDat[, .(bfi, geol, month, meanCAI, meanGC)],
+  AOB = aobDat[, .(bfi, geol, month, meanHydrophob, meanCharge)],
+  AOB = aobOtuDat[, .(bfi, geol, month, meanCAI, meanGC)]),
+  idcol = T, fill = T)
 
 hydroData <- melt(hydroData, id.vars = c(".id", "bfi", "geol", "month"))
 
 hydroPredData <- data.table(bfi = seq(min(dat$bfi), max(dat$bfi), 0.005))
 hydroPreds <- lapply(list(
-  aoaHydroLm, aoaChargeLm, aobHydroLm, aobChargeLm), function(x)
+  aoaHydroLm, aoaChargeLm, aoaCaiLm, aoaGcLm, aobHydroLm, aobChargeLm,
+    aobCaiLm, aobGcLm), function(x)
   predict(x, newdata = hydroPredData, se.fit = T))
 
-allHydroPreds <- data.table(bfi = rep(hydroPredData$bfi, times = 4),
-    .id = rep(c("AOA", "AOB"), each = 2 * nrow(hydroPredData)),
+allHydroPreds <- data.table(bfi = rep(hydroPredData$bfi, times = 8),
+    .id = rep(c("AOA", "AOB"), each = 4 * nrow(hydroPredData)),
     value = c(
       hydroPreds[[1]]$fit, hydroPreds[[2]]$fit, hydroPreds[[3]]$fit,
-        hydroPreds[[4]]$fit),
-    variable = rep(c(rep("meanHydrophob", times = nrow(hydroPredData)),
-      rep("meanCharge", times = nrow(hydroPredData))), times = 2),
-    se = c(hydroPreds[[1]]$se.fit, hydroPreds[[2]]$se.fit, hydroPreds[[3]]$se.fit, hydroPreds[[4]]$se.fit))
+        hydroPreds[[4]]$fit, hydroPreds[[5]]$fit, hydroPreds[[6]]$fit,
+        hydroPreds[[7]]$fit, hydroPreds[[8]]$fit),
+    variable = rep(c(
+      rep("meanHydrophob", times = nrow(hydroPredData)),
+      rep("meanCharge", times = nrow(hydroPredData)),
+      rep("meanCAI", times = nrow(hydroPredData)),
+      rep("meanGC", times = nrow(hydroPredData))), times = 2),
+    se = c(hydroPreds[[1]]$se.fit, hydroPreds[[2]]$se.fit, hydroPreds[[3]]$se.fit, hydroPreds[[4]]$se.fit, hydroPreds[[5]]$se.fit, hydroPreds[[6]]$se.fit, hydroPreds[[7]]$se.fit, hydroPreds[[8]]$se.fit))
 
 allHydroPreds[, ":="(uppCI = value + (1.96 * se),
   lowCI = value - (1.96 * se),
@@ -1979,7 +1986,7 @@ allHydroPreds[, ":="(uppCI = value + (1.96 * se),
   month = NA)]
 
 # need to fix geol legend
-hydroPlot <- ggplot(hydroData[variable == "meanHydrophob"],
+hydroPlot <- ggplot(hydroData[! is.na(value) & variable == "meanHydrophob"],
     aes(x = bfi, y = value, fill = geol, shape = month)) +
   geom_point(size = 4, alpha = 0.7) +
   facet_wrap(~ .id, scales = "free_y") +
@@ -2002,7 +2009,7 @@ hydroPlot <- ggplot(hydroData[variable == "meanHydrophob"],
     plot.title = element_text(size = 20),
     panel.grid = element_blank())
 
-chargePlot <- ggplot(hydroData[variable == "meanCharge"],
+chargePlot <- ggplot(hydroData[! is.na(value) & variable == "meanCharge"],
     aes(x = bfi, y = value, fill = geol, shape = month)) +
   geom_point(size = 4, alpha = 0.7) +
   facet_wrap(~ .id, scales = "free_y") +
@@ -2025,15 +2032,58 @@ chargePlot <- ggplot(hydroData[variable == "meanCharge"],
     plot.title = element_text(size = 20),
     panel.grid = element_blank())
 
-plotLegend <- cowplot::get_legend(hydroPlot)
+caiPlot <- ggplot(hydroData[! is.na(value) & variable == "meanCAI"],
+    aes(x = bfi, y = value, fill = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.7) +
+  facet_wrap(~ .id, scales = "free_y") +
+  scale_shape_manual("Sample month", values = c(21, 22)) +
+  scale_fill_manual("Geology", values = c("white", "grey", "darkseagreen3")) +
+  guides(fill = guide_legend(override.aes=list(shape=21))) +
+  geom_ribbon(data = allHydroPreds[variable == "meanCAI"],
+    aes(x = bfi, y = value, ymin = lowCI, ymax = uppCI),
+    alpha = 0.4, fill = "grey", colour = NA) +
+  geom_line(data = allHydroPreds[variable == "meanCAI"],
+    aes(x = bfi, y = value),
+    linetype = 1) +
+  labs(x = "Base flow index", y = "Average CAI",
+    title = "C") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    strip.text.x = element_text(size = 14),
+    plot.title = element_text(size = 20),
+    panel.grid = element_blank())
 
-hydroPlot <- hydroPlot + theme(legend.position = "none")
-chargePlot <- chargePlot + theme(legend.position = "none")
+gcPlot <- ggplot(hydroData[! is.na(value) & variable == "meanGC"],
+    aes(x = bfi, y = value, fill = geol, shape = month)) +
+  geom_point(size = 4, alpha = 0.7) +
+  facet_wrap(~ .id, scales = "free_y") +
+  scale_shape_manual("Sample month", values = c(21, 22)) +
+  scale_fill_manual("Geology", values = c("white", "grey", "darkseagreen3")) +
+  guides(fill = guide_legend(override.aes=list(shape=21))) +
+  geom_ribbon(data = allHydroPreds[variable == "meanGC"],
+    aes(x = bfi, y = value, ymin = lowCI, ymax = uppCI),
+    alpha = 0.4, fill = "grey", colour = NA) +
+  geom_line(data = allHydroPreds[variable == "meanGC"],
+    aes(x = bfi, y = value),
+    linetype = 1) +
+  labs(x = "Base flow index", y = "Average GC content (%)",
+    title = "D") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    strip.text.x = element_text(size = 14),
+    plot.title = element_text(size = 20),
+    panel.grid = element_blank())
 
-aoAminoPanel <-((hydroPlot / chargePlot) | plotLegend) +
-  plot_layout(widths = c(1, 0.2))
+aoAminoPanel <- hydroPlot + chargePlot + caiPlot + gcPlot +
+  plot_layout(ncol = 1, guides = "collect")
 
-ggsave("../figures/aoa_aob_hyrdo.pdf", aoAminoPanel, height = 8, width = 9,
+ggsave("../figures/aoa_aob_hyrdo.pdf", aoAminoPanel, height = 12, width = 9,
   device = "pdf")
 
 # aoa:aob ratio
