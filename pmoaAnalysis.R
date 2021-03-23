@@ -1,5 +1,3 @@
-# redo figure S2
-
 lapply(c("vegan",
   "ggplot2",
   "data.table",
@@ -12,7 +10,13 @@ lapply(c("vegan",
   "ggridges",
   "patchwork",
   "viridis",
-  "MASS"), library, character.only = T)
+  "MASS",
+  "rnrfa",
+  "rnaturalearth",
+  "rnaturalearthhires",
+  "gam",
+  "mgcv",
+  "sf"), library, character.only = T)
 
 dat <- fread("envData.csv")
 
@@ -67,9 +71,7 @@ pmoaAavBfiDat <- data.table(dissim = as.vector(pmoaBetaMat[[3]]),
 pmoaDat[, richness := specnumber(.SD), .SDcols = nsAavs]
 
 # test for differences in hydrophobicity
-test <- read.fasta(
-  "sequences/pmoA/mergedSeqs/allErrorCorrected/framebotOut/AAVs.fasta",
-  seqtype = "AA", as.string = T)
+test <- read.fasta("pmoaAAVs.fasta", seqtype = "AA", as.string = T)
 
 testSeq <- data.table(AAV = names(test),
   seq = unlist(sapply(test, getSequence, as.string = T)))
@@ -317,32 +319,6 @@ pmoaOtuDat[, ":="(
   meanGC =  unlist(lapply(1:nrow(pmoaOtuDat), function(s)
     weighted.mean(x = pmoaCAI$gc, w = pmoaOtuDat[s, .SD, .SDcols = otuCols]))))]
 
-pmoaCAI_plot <- ggplot(pmoaOtuDat,
-    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean codon adaptation index") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
-pmoaGC_plot <- ggplot(pmoaOtuDat,
-    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean GC content (%)") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
 pmoaCaiLm <- lm(meanCAI ~ bfi, pmoaOtuDat)
 summary(pmoaCaiLm)
 
@@ -400,7 +376,7 @@ mcraDat[, richness := specnumber(.SD), .SDcols = nsAavs]
 
 # test for differences in hydrophobicity
 test <- read.fasta(
-  "sequences/mcrA/mergedSeqs/allErrorCorrected/framebotOut/AAVs.fasta",
+  "mcraAAVs.fasta",
   seqtype = "AA", as.string = T)
 
 testSeq <- data.table(AAV = names(test),
@@ -570,32 +546,6 @@ mcraOtuDat[, ":="(
   meanGC = unlist(lapply(1:nrow(mcraOtuDat), function(s)
     weighted.mean(x = mcraCAI$gc, w = mcraOtuDat[s, .SD, .SDcols = otuCols]))))]
 
-mcraCAI_plot <- ggplot(mcraOtuDat,
-    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean codon adaptation index") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
-mcraGC_plot <- ggplot(mcraOtuDat,
-    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean GC content (%)") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
 mcraCaiLm <- lm(meanCAI ~ bfi, mcraOtuDat)
 summary(mcraCaiLm)
 
@@ -651,7 +601,7 @@ nirsDat[, richness := specnumber(.SD), .SDcols = nsAavs]
 
 # test for differences in hydrophobicity
 test <- read.fasta(
-  "sequences/nirS/mergedSeqs/allErrorCorrected/framebotOut/AAVs.fasta",
+  "nirsAAVs.fasta",
   seqtype = "AA", as.string = T)
 
 testSeq <- data.table(AAV = names(test),
@@ -705,9 +655,6 @@ nirsCharge_bfi <- ggplot(nirsDat,
 
 nirsHydroLm <- lm(meanHydrophob ~ bfi, data = nirsDat)
 nirsChargeLm <- lm(meanCharge ~ bfi, data = nirsDat)
-
-ggsave("../figures/nirS_hydrophobicity.pdf", nirsHydro_bfi, height = 6,
-  width = 7, device = "pdf")
 
 otus <- fread("nirSOtuTab.txt")
 colnames(otus)[1] <- "OTU"
@@ -826,32 +773,6 @@ nirsOtuDat[, ":="(
   meanGC = unlist(lapply(1:nrow(nirsOtuDat), function(s)
     weighted.mean(x = nirsCAI$gc, w = nirsOtuDat[s, .SD, .SDcols = otuCols]))))]
 
-nirsCAI_plot <- ggplot(nirsOtuDat,
-    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean codon adaptation index") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
-nirsGC_plot <- ggplot(nirsOtuDat,
-    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean GC content (%)") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
 nirsCaiLm <- lm(meanCAI ~ bfi, nirsOtuDat)
 summary(nirsCaiLm) # signif
 
@@ -907,7 +828,7 @@ aobDat[, richness := specnumber(.SD), .SDcols = nsAavs]
 
 # test for differences in hydrophobicity
 test <- read.fasta(
-  "sequences/AOB/mergedSeqs/allErrorCorrected/framebotOut/AAVs.fasta",
+  "aobAAVs.fasta",
   seqtype = "AA", as.string = T)
 
 testSeq <- data.table(AAV = names(test),
@@ -933,35 +854,6 @@ aobDat[, ":="(
 
 aobHydroLm <- lm(meanHydrophob ~ bfi, data = aobDat)
 aobChargeLm <- lm(meanCharge ~ bfi, data = aobDat)
-
-aobHydro_bfi <- ggplot(aobDat, aes(x = bfi, y = meanHydrophob)) +
-  geom_point(aes(col = geol, shape = month), size = 4, alpha = 0.6) +
-  labs(x = "Base flow index",
-    y = expression(Weighted~mean~italic(aob)~hydrophobicity),
-    col = "Geology") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
-aobCharge_bfi <- ggplot(aobDat, aes(x = bfi, y = meanCharge)) +
-  geom_point(aes(col = geol, shape = month), size = 4, alpha = 0.6) +
-  labs(x = "Base flow index",
-    y = expression(Weighted~mean~italic(aob)~net~charge),
-    col = "Geology") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
-ggsave("../figures/aob_hydrophobicity.pdf", aobHydro_bfi, height = 6,
-  width = 7, device = "pdf")
 
 # AOB OTU analysis
 otus <- fread("AOB_amoAOtuTab.txt")
@@ -1093,32 +985,6 @@ aobOtuDat[, ":="(
   meanGC = unlist(lapply(1:nrow(aobOtuDat), function(s)
     weighted.mean(x = aobCAI$gc, w = aobOtuDat[s, .SD, .SDcols = otuCols]))))]
 
-aobCAI_plot <- ggplot(aobOtuDat,
-    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean codon adaptation index") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
-aobGC_plot <- ggplot(aobOtuDat,
-    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean GC content (%)") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
 aobCaiLm <- lm(meanCAI ~ bfi, aobOtuDat)
 summary(aobCaiLm) # signif
 aobGcLm <- lm(meanGC ~ bfi, aobOtuDat)
@@ -1171,8 +1037,7 @@ nestedness = as.vector(aoaBetaMat[[2]]),
 aoaDat[, richness := specnumber(.SD), .SDcols = nsAavs]
 
 # test for differences in hydrophobicity
-test <- read.fasta(
-  "sequences/AOA/qualTrimmedSeqs/allErrorCorrected/framebotOut/AAVs.fasta",
+test <- read.fasta("aoaAAVs.fasta",
   seqtype = "AA", as.string = T)
 
 testSeq <- data.table(AAV = names(test),
@@ -1197,37 +1062,6 @@ aoaDat[, ":="(meanHydrophob = unlist(lapply(1:nrow(aoaDat), function(s)
 
 aoaHydroLm <- lm(meanHydrophob ~ bfi, data = aoaDat)
 aoaChargeLm <- lm(meanCharge ~ bfi, data = aoaDat)
-
-aoaHydro_bfi <- ggplot(aoaDat,
-    aes(x = bfi, y = meanHydrophob, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(x = "Base flow index",
-    y = expression(Weighted~mean~italic(aoa)~hydrophobicity),
-    col = "Geology") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
-aoaCharge_bfi <- ggplot(aoaDat,
-    aes(x = bfi, y = meanCharge, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(x = "Base flow index",
-    y = expression(Weighted~mean~italic(aoa)~net~charge),
-    col = "Geology") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
-ggsave("../figures/aoa_hydrophobicity.pdf", aoaHydro_bfi, height = 6,
-  width = 7, device = "pdf")
 
 # aoa OTU analysis
 otus <- fread("AOA_amoAOtuTab.txt")
@@ -1347,32 +1181,6 @@ aoaOtuDat[, ":="(
   meanGC = unlist(lapply(1:nrow(aoaOtuDat), function(s)
     weighted.mean(x = aoaCAI$gc, w = aoaOtuDat[s, .SD, .SDcols = otuCols]))))]
 
-aoaCAI_plot <- ggplot(aoaOtuDat,
-    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean codon adaptation index") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
-aoaGC_plot <- ggplot(aoaOtuDat,
-    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean GC content (%)") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
 aoaCaiLm <- lm(meanCAI ~ bfi, aoaOtuDat)
 summary(aoaCaiLm) # signif
 
@@ -1430,7 +1238,7 @@ hzoDat[, richness := specnumber(.SD), .SDcols = nsAavs]
 
 # test for differences in hydrophobicity
 test <- read.fasta(
-  "sequences/hzo/mergedSeqs/allErrorCorrected/framebotOut/AAVs.fasta",
+  "hzoAAVs.fasta",
   seqtype = "AA", as.string = T)
 
 testSeq <- data.table(AAV = names(test),
@@ -1564,6 +1372,29 @@ hzoAavBoot <- boot.coefs.decay(hzoAavDecay, 1000)
 hzoOtuBoot <- boot.coefs.decay(hzoOtuDecay, 1000)
 hzoBoot <- combineBoots(gene = "hzo", hzoAavBoot, hzoOtuBoot)
 
+# hzo richness analysis
+hzoOtuDat[, richness := specnumber(.SD), .SDcols = otuCols]
+
+hzoRichness <- rbindlist(list(AAV = hzoDat[, .(bfi, geol, richness, month)],
+  OTU = hzoOtuDat[, .(bfi, geol, richness, month)]), idcol = "type")
+
+# aav richness models
+hzoAavRichness <- glm.nb(richness ~ bfi, data = hzoRichness[type == "AAV"])
+hzoMonthAavRichness <- glm.nb(richness ~ month * bfi,
+  data = hzoRichness[type == "AAV"])
+anova(hzoMonthAavRichness, hzoAavRichness)
+AIC(hzoMonthAavRichness, hzoAavRichness)
+
+# otu richness models
+hzoOtuRichness <- glm.nb(richness ~ bfi, data = hzoRichness[type == "OTU"])
+hzoMonthOtuRichness <- glm.nb(richness ~ month * bfi,
+  data = hzoRichness[type == "OTU"])
+anova(hzoMonthOtuRichness, hzoOtuRichness)
+AIC(hzoMonthOtuRichness, hzoOtuRichness)
+
+lapply(list(
+  hzoAavRichness, hzoMonthAavRichness, hzoOtuRichness, hzoMonthOtuRichness),
+  Dsquared, adjust = T)
 # calculate codon adaptation index for all OTU centroid sequences
 hzoCAI <- denovoCAI("hzoCentroids.fna")
 hzoGC <- gcContent("hzoCentroids.fna")
@@ -1581,32 +1412,6 @@ hzoOtuDat[, ":="(
     weighted.mean(x = hzoCAI$CAI, w = hzoOtuDat[s, .SD, .SDcols = otuCols]))),
   meanGC = unlist(lapply(1:nrow(hzoOtuDat), function(s)
     weighted.mean(x = hzoCAI$gc, w = hzoOtuDat[s, .SD, .SDcols = otuCols]))))]
-
-hzoCAI_plot <- ggplot(hzoOtuDat,
-    aes(x = bfi, y = meanCAI, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean codon adaptation index") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
-
-hzoGC_plot <- ggplot(hzoOtuDat,
-    aes(x = bfi, y = meanGC, col = geol, shape = month)) +
-  geom_point(size = 4, alpha = 0.6) +
-  labs(col = "Geology", shape = "Month", x = "Base flow index",
-    y = "Weighted mean GC content (%)") +
-  scale_color_viridis(discrete = T) +
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-    axis.title = element_text(size = 18),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
-    panel.grid = element_blank())
 
 hzoCaiLm <- lm(meanCAI ~ bfi, hzoOtuDat)
 summary(hzoCaiLm) # signif
@@ -1760,30 +1565,6 @@ nesPanel <- ggplot(distData, aes(x = bfiSim, y = nestedness, col = type)) +
 ggsave("../figures/nestedness_panel.pdf", nesPanel, height = 7, width = 11,
   device = "pdf")
 
-# hzo richness analysis
-hzoOtuDat[, richness := specnumber(.SD), .SDcols = otuCols]
-
-hzoRichness <- rbindlist(list(AAV = hzoDat[, .(bfi, geol, richness, month)],
-  OTU = hzoOtuDat[, .(bfi, geol, richness, month)]), idcol = "type")
-
-# aav richness models
-hzoAavRichness <- glm.nb(richness ~ bfi, data = hzoRichness[type == "AAV"])
-hzoMonthAavRichness <- glm.nb(richness ~ month * bfi,
-  data = hzoRichness[type == "AAV"])
-anova(hzoMonthAavRichness, hzoAavRichness)
-AIC(hzoMonthAavRichness, hzoAavRichness)
-
-# otu richness models
-hzoOtuRichness <- glm.nb(richness ~ bfi, data = hzoRichness[type == "OTU"])
-hzoMonthOtuRichness <- glm.nb(richness ~ month * bfi,
-  data = hzoRichness[type == "OTU"])
-anova(hzoMonthOtuRichness, hzoOtuRichness)
-AIC(hzoMonthOtuRichness, hzoOtuRichness)
-
-lapply(list(
-  hzoAavRichness, hzoMonthAavRichness, hzoOtuRichness, hzoMonthOtuRichness),
-  Dsquared, adjust = T)
-
 # assemble facet plots for AAV and OTU richness for each gene
 richList <- list(aoa = aoaRichness,
   aob = aobRichness,
@@ -1792,23 +1573,32 @@ richList <- list(aoa = aoaRichness,
   mcrA = mcraRichness,
   pmoA = pmoaRichness)
 
+allRichnessData <- rbindlist(richList, idcol = "taxon")
+allRichnessData[, taxon := factor(
+  taxon,
+  levels = c("hzo", "aob", "aoa", "nirS", "mcrA", "pmoA"),
+  labels = c("Anammox bacteria", "Ammonia-oxidising bacteria",
+    "Ammonia-oxidising archaea", "Nitrite-reducing bacteria", "Methanogens",
+    "Methane-oxidising bacteria")
+)]
+
 #list of all aav and otu richness models
 aavMods <- list(
-    aoaAavRichness,
-    aobAavRichness,
-    hzoAavRichness,
-    nirsAavRichness,
-    mcraAavRichness,
-    pmoaAavRichness
+  aoa = aoaAavRichness,
+  aob = aobAavRichness,
+  hzo = hzoAavRichness,
+  nirS = nirsAavRichness,
+  mcrA = mcraAavRichness,
+  pmoA = pmoaAavRichness
 )
 
 otuMods <- list(
-    aoaOtuRichness,
-    aobOtuRichness,
-    hzoOtuRichness,
-    nirsOtuRichness,
-    mcraOtuRichness,
-    pmoaOtuRichness
+  aoa = aoaOtuRichness,
+  aob = aobOtuRichness,
+  hzo = hzoOtuRichness,
+  nirS = nirsOtuRichness,
+  mcrA = mcraOtuRichness,
+  pmoA = pmoaOtuRichness
 )
 
 richPreds <- data.table(
@@ -1819,8 +1609,9 @@ aavPredicts <- lapply(aavMods, function(x)
 otuPredicts <- lapply(otuMods, function(x)
   predict(x, newdata = richPreds, type = "link", se.fit = T))
 
-test <- lapply(1:6, function(x)
+richnessPreds <- lapply(1:6, function(x)
   data.table(
+    taxon = names(aavPredicts[x]),
     bfi = rep(richPreds$bfi, times = 2),
     type = rep(c("AAV", "OTU"), each = length(richPreds$bfi)),
     prediction = c(aavPredicts[[x]]$fit, otuPredicts[[x]]$fit),
@@ -1832,35 +1623,43 @@ test <- lapply(1:6, function(x)
         rep(ifelse(coef(summary(otuMods[[x]]))[, 4][2] < 0.05, 1, 2),
           times = length(richPreds$bfi)))))
 
-# bind all predictions into one df
-allPreds <- rbindlist(test, idcol = T)
+richnessPreds <- rbindlist(richnessPreds)
+richnessPreds[, taxon := factor(
+  taxon,
+  levels = c("hzo", "aob", "aoa", "nirS", "mcrA", "pmoA"),
+  labels = c("Anammox bacteria", "Ammonia-oxidising bacteria",
+    "Ammonia-oxidising archaea", "Nitrite-reducing bacteria", "Methanogens",
+    "Methane-oxidising bacteria")
+)]
 
 # calculate prediction 95% conf intervals and
 # back transform richness predictions
-allPreds[, ":="(
+richnessPreds[, ":="(
   uppCI = exp(prediction + (1.96 * se)),
   lowCI = exp(prediction - (1.96 * se)),
   richness = exp(prediction),
-  geol = NA
+  geol = NA,
+  signif = as.factor(signif)
 )]
 
-allPreds[, signif := as.factor(signif)]
-
-# add geom_line and geom_ribbon
-richnessPlots <- list(length = 6)
-for(i in 1:6){
-  richnessPlots[[i]] <- ggplot(data = richList[[i]],
+Fig_1 <- ggplot(data = allRichnessData[taxon %in% c(
+  "Ammonia-oxidising archaea", "Ammonia-oxidising bacteria",
+    "Anammox bacteria")],
       aes(x = bfi, y = richness, fill = geol)) +
     geom_point(size = 3, shape = 21, alpha = 0.7) +
-    geom_ribbon(data = allPreds[.id == i, ],
+    geom_ribbon(data = richnessPreds[taxon %in% c(
+  "Ammonia-oxidising archaea", "Ammonia-oxidising bacteria",
+    "Anammox bacteria")],
       aes(ymin = lowCI, ymax = uppCI),
       fill = "grey", alpha = 0.4) +
-    geom_line(data = allPreds[.id == i, ],
+    geom_line(data = richnessPreds[taxon %in% c(
+  "Ammonia-oxidising archaea", "Ammonia-oxidising bacteria",
+    "Anammox bacteria")],
       aes(x = bfi, y = richness, linetype = signif)) +
     scale_fill_manual(values = c("white", "grey", "darkseagreen3")) +
     scale_linetype_manual(name = "", values = c(1, 2), drop = F,
       labels = c(expression(italic(P)<0.05), expression(italic(P)>=0.05))) +
-    facet_wrap(~ type, scales = "free_y") +
+    facet_wrap(taxon ~ type, scales = "free", ncol = 2) +
     labs(x = "Base flow index", y = "Richness", fill = "") +
     theme_bw() +
     theme(axis.text = element_text(size = 16),
@@ -1868,55 +1667,37 @@ for(i in 1:6){
       legend.text = element_text(size = 14),
       panel.grid = element_blank(),
       strip.text.x = element_text(size = 14))
-    }
 
-# arrange signif ones into panel and write up stats. include ns ones in SI
-richnessPlots[[1]] <- richnessPlots[[1]] +
-  labs(title = "A") +
-  theme(axis.title.x = element_blank(),
-    plot.title = element_text(size = 18, hjust = -0.15, vjust = 1.2,
-      margin = margin(b = -20)))
-richnessPlots[[2]] <- richnessPlots[[2]] +
-  labs(title = "B") +
-  theme(axis.title.x = element_blank(),
-    legend.position = "none",
-    plot.title = element_text(size = 18, hjust = -0.15, vjust = 1.2,
-      margin = margin(b = -20)))
-richnessPlots[[3]] <- richnessPlots[[3]] +
-  labs(title = "C") +
-  theme(legend.position = "none",
-    plot.title = element_text(size = 18, hjust = -0.15, vjust = 1.2,
-      margin = margin(b = -20)))
+ggsave("../figures/main_richness_panel.pdf", Fig_1, height = 9,
+  width = 8.25, device = "pdf")
 
-mainRichPanel <- richnessPlots[[1]] + richnessPlots[[2]] + richnessPlots[[3]] +
-  plot_layout(ncol = 1)
+Fig_S1 <- ggplot(data = allRichnessData[taxon %in% c(
+  "Nitrite-reducing bacteria", "Methanogens",
+    "Methane-oxidising bacteria")],
+      aes(x = bfi, y = richness, fill = geol)) +
+    geom_point(size = 3, shape = 21, alpha = 0.7) +
+    geom_ribbon(data = richnessPreds[taxon %in% c(
+  "Nitrite-reducing bacteria", "Methanogens",
+    "Methane-oxidising bacteria")],
+      aes(ymin = lowCI, ymax = uppCI),
+      fill = "grey", alpha = 0.4) +
+    geom_line(data = richnessPreds[taxon %in% c(
+  "Nitrite-reducing bacteria", "Methanogens",
+    "Methane-oxidising bacteria")],
+      aes(x = bfi, y = richness, linetype = signif)) +
+    scale_fill_manual(values = c("white", "grey", "darkseagreen3")) +
+    scale_linetype_manual(name = "", values = c(1, 2), drop = F,
+      labels = c(expression(italic(P)<0.05), expression(italic(P)>=0.05))) +
+    facet_wrap(taxon ~ type, scales = "free", ncol = 2) +
+    labs(x = "Base flow index", y = "Richness", fill = "") +
+    theme_bw() +
+    theme(axis.text = element_text(size = 16),
+      axis.title = element_text(size = 18),
+      legend.text = element_text(size = 14),
+      panel.grid = element_blank(),
+      strip.text.x = element_text(size = 14))
 
-mainRichPanel <- mainRichPanel + plot_layout(guides = "collect")
-
-ggsave("../figures/main_richness_panel.pdf", mainRichPanel, height = 8,
-  width = 7, device = "pdf")
-
-richnessPlots[[4]] <- richnessPlots[[4]] +
-  labs(title = "A") +
-  theme(axis.title.x = element_blank(),
-    plot.title = element_text(size = 18, hjust = -0.15, vjust = 1.2,
-      margin = margin(b = -20)))
-richnessPlots[[5]] <- richnessPlots[[5]] +
-  labs(title = "B") +
-  theme(axis.title.x = element_blank(),
-    plot.title = element_text(size = 18, hjust = -0.15, vjust = 1.2,
-      margin = margin(b = -20)))
-richnessPlots[[6]] <- richnessPlots[[6]] +
-  labs(title = "C") +
-  theme(plot.title = element_text(size = 18, hjust = -0.15, vjust = 1.2,
-      margin = margin(b = -20)))
-
-siRichPanel <- richnessPlots[[4]] + richnessPlots[[5]] + richnessPlots[[6]] +
-  plot_layout(ncol = 1)
-
-siRichPanel <- siRichPanel + plot_layout(guides = "collect")
-
-ggsave("../figures/si_richness_panel.pdf", siRichPanel, height = 8, width = 7,
+ggsave("../figures/si_richness_panel.pdf", Fig_S1, height = 9, width = 8.25,
   device = "pdf")
 
 # create ridge plot of all bootstrapped coefficients
@@ -1999,7 +1780,7 @@ hydroPlot <- ggplot(hydroData[! is.na(value) & variable == "meanHydrophob"],
   geom_line(data = allHydroPreds[variable == "meanHydrophob"],
     aes(x = bfi, y = value),
     linetype = 1) +
-  labs(x = "Base flow index", y = "Average hydrophobicity", title = "A") +
+  labs(x = "Base flow index", y = "Average hydrophobicity", title = "C") +
   theme_bw() +
   theme(axis.text = element_text(size = 16),
     axis.title = element_text(size = 18),
@@ -2022,7 +1803,7 @@ chargePlot <- ggplot(hydroData[! is.na(value) & variable == "meanCharge"],
   geom_line(data = allHydroPreds[variable == "meanCharge"],
     aes(x = bfi, y = value),
     linetype = 1) +
-  labs(x = "Base flow index", y = "Average net charge", title = "B") +
+  labs(x = "Base flow index", y = "Average net charge", title = "D") +
   theme_bw() +
   theme(axis.text = element_text(size = 16),
     axis.title = element_text(size = 18),
@@ -2046,7 +1827,7 @@ caiPlot <- ggplot(hydroData[! is.na(value) & variable == "meanCAI"],
     aes(x = bfi, y = value),
     linetype = 1) +
   labs(x = "Base flow index", y = "Average CAI",
-    title = "C") +
+    title = "B") +
   theme_bw() +
   theme(axis.text = element_text(size = 16),
     axis.title = element_text(size = 18),
@@ -2070,7 +1851,7 @@ gcPlot <- ggplot(hydroData[! is.na(value) & variable == "meanGC"],
     aes(x = bfi, y = value),
     linetype = 1) +
   labs(x = "Base flow index", y = "Average GC content (%)",
-    title = "D") +
+    title = "A") +
   theme_bw() +
   theme(axis.text = element_text(size = 16),
     axis.title = element_text(size = 18),
@@ -2080,23 +1861,22 @@ gcPlot <- ggplot(hydroData[! is.na(value) & variable == "meanGC"],
     plot.title = element_text(size = 20),
     panel.grid = element_blank())
 
-aoAminoPanel <- hydroPlot + chargePlot + caiPlot + gcPlot +
+# re order these figures
+aoAminoPanel <- gcPlot + caiPlot + hydroPlot + chargePlot +
   plot_layout(ncol = 1, guides = "collect")
 
-ggsave("../figures/aoa_aob_hyrdo.pdf", aoAminoPanel, height = 12, width = 9,
+ggsave("../figures/aoa_aob_hydro.pdf", aoAminoPanel, height = 12.5, width = 8,
   device = "pdf")
 
 # aoa:aob ratio
-dat[, totalAo := round(aoa) + round(aob)]
+### need to use beta regression, as ntrials are too large and giving silly SEs
+dat[, totalAo := round(aoa) + round(aob) + round(hzo)]
 dat[, aoaProp := round(aoa)/totalAo]
-aoaRatio <- glm(aoaProp ~ bfi, weights = totalAo, data = dat,
-  family = binomial)
+aoaRatio <- gam(aoaProp ~ bfi, data = dat, family = betar(link = "logit"))
 summary(aoaRatio)
 
-dat[, hzoTotalAo := round(totalAo) + round(hzo)]
-dat[, hzoProp := round(hzo)/hzoTotalAo]
-hzoRatio <- glm(hzoProp ~ bfi, weights = hzoTotalAo, data = dat,
-  family = binomial)
+dat[, hzoProp := round(hzo)/totalAo]
+hzoRatio <- gam(hzoProp ~ bfi, data = dat, family = betar(link = "logit"))
 summary(hzoRatio)
 Dsquared(hzoRatio)
 
@@ -2124,7 +1904,10 @@ hzoPreds[, ":="(hzoProp = invLogit(linkPred),
 # prediction intervals are too close to see
 aoaProb <- ggplot(dat, aes(x = bfi, y = aoaProp, fill = geol)) +
   geom_point(size = 3, alpha = 0.7, shape = 21) +
-  geom_line(data = aoaPreds, aes(x = bfi, y = aoaProp), size = 1.1) +  scale_fill_manual("Geology", values = c("white", "grey", "darkseagreen3")) +
+  geom_ribbon(data = aoaPreds, aes(ymin = lowCI, ymax = uppCI), fill = "grey",
+    alpha = 0.7) +
+  geom_line(data = aoaPreds, aes(x = bfi, y = aoaProp), size = 1.1) +
+  scale_fill_manual("Geology", values = c("white", "grey", "darkseagreen3")) +
   labs(x = "Base flow index", y = "P(AOA)", title = "A") +
   theme_bw() +
   theme(axis.text = element_text(size = 16),
@@ -2136,7 +1919,10 @@ aoaProb <- ggplot(dat, aes(x = bfi, y = aoaProp, fill = geol)) +
 
 hzoProb <- ggplot(dat, aes(x = bfi, y = hzoProp, fill = geol)) +
   geom_point(size = 3, alpha = 0.7, shape = 21) +
-  geom_line(data = hzoPreds, aes(x = bfi, y = hzoProp), size = 1.1) +  scale_fill_manual("Geology", values = c("white", "grey", "darkseagreen3")) +
+  geom_ribbon(data = hzoPreds, aes(ymin = lowCI, ymax = uppCI), fill = "grey",
+    alpha = 0.7) +
+  geom_line(data = hzoPreds, aes(x = bfi, y = hzoProp), size = 1.1) +
+  scale_fill_manual("Geology", values = c("white", "grey", "darkseagreen3")) +
   labs(x = "Base flow index", y = "P(anammox)", title = "B") +
   theme_bw() +
   theme(axis.text = element_text(size = 16),
@@ -2148,7 +1934,7 @@ hzoProb <- ggplot(dat, aes(x = bfi, y = hzoProp, fill = geol)) +
 
 aoPanel <- aoaProb + hzoProb + plot_layout(ncol = 2, guides = "collect")
 
-ggsave("../figures/ammox_panel.pdf", aoPanel, height = 4.5, width = 8,
+ggsave("../figures/ammox_panel.pdf", aoPanel, height = 4.5, width = 10,
   device = "pdf")
 
 # nmds panel
@@ -2197,3 +1983,83 @@ nmdsPanel <- ggplot(allNmds, aes(x = x, y = y, col = bfi, shape = month)) +
 
 ggsave("../figures/nmds_panel.pdf", nmdsPanel, height = 12, width = 9,
   device = "pdf")
+
+
+x <- catalogue()
+setDT(x)
+bfiDat <- x[, .(latitude, longitude, bfihost)]
+setnames(bfiDat, old = "bfihost", new = "bfi")
+
+bfiDat[, ":="(aoaRatio = predict(aoaRatio, newdata = bfiDat, type = "response"),
+  aoaHydro = predict(aoaHydroLm, newdata = bfiDat),
+  aobHydro = predict(aobHydroLm, newdata = bfiDat))]
+
+bfiDat <- st_as_sf(bfiDat, coords = c("longitude", "latitude"), crs = 4326)
+
+uk <- ne_countries(scale = "large", returnclass="sf",
+  country = "United Kingdom")
+
+aoaMap <- ggplot(data = uk) +
+  geom_sf() +
+  geom_sf(data = bfiDat[!is.na(bfiDat$bfi), ], aes(col = aoaRatio), size = 2.5,
+    alpha = 0.5) +
+  scale_colour_viridis(name = "P(AOA)") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank()) +
+  coord_sf(xlim = c(-10, 1.53066))
+
+aoaHydroMap <- ggplot(data = uk) +
+  geom_sf() +
+  geom_sf(data = bfiDat[!is.na(bfiDat$bfi), ], aes(col = aoaHydro), size = 2.5,
+    alpha = 0.5) +
+  scale_colour_viridis(name = "Average hydrophobicity") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank()) +
+  coord_sf(xlim = c(-10, 1.53066))
+
+aobHydroMap <- ggplot(data = uk) +
+  geom_sf() +
+  geom_sf(data = bfiDat[!is.na(bfiDat$bfi), ], aes(col = aobHydro), size = 2.5,
+    alpha = 0.5) +
+  scale_colour_viridis(name = "Average hydrophobicity") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank()) +
+  coord_sf(xlim = c(-10, 1.53066))
+
+bfiHost <- data.table(
+  bfi = c(.207, .549, .781, .744, .906, .901),
+  bfiHost = c(.234, .372, .695, .861,.953, .931),
+  geol = rep(c("Clay", "Greensand", "Chalk"), each = 2))
+
+paste("list(italic(r^{2}) ==", 0.151, ", p==.226)")
+
+statsLabel <- paste("list(italic(R)^{2} ==", round(summary(lm(bfi ~ bfiHost, data = bfiHost))$r.squared, 2), ", italic(P) < 0.001)")
+
+bfiStats <- ggplot(bfiHost, aes(x = bfi, y = bfiHost)) +
+  stat_smooth(method = "lm", colour = "black") +
+  geom_point(size = 6, aes(fill = geol), shape = 21) +
+  annotate("text", x = 0.4, y = 0.9, label = statsLabel, parse = T, size = 6) +
+  scale_fill_manual("Geology", values = c("white", "grey", "darkseagreen3")) +
+  theme_bw() +
+  labs(x = "BFI", y = "BFIHOST") +
+  theme(axis.text = element_text(size = 16),
+    axis.title = element_text(size = 18),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    panel.grid = element_blank())
+
+predMap <- aoaMap + aoaHydroMap + aobHydroMap + bfiStats +
+  plot_layout(ncol = 2) +
+  plot_annotation(tag_levels = "A") &
+  theme(plot.tag = element_text(size = 20))
+
+ cr
